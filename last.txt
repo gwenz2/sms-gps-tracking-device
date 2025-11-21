@@ -1,0 +1,101 @@
+#include <Arduino.h>
+#include <SoftwareSerial.h>
+ 
+// D1 (GPIO5) = TX to SIM800L RX, D2 (GPIO4) = RX from SIM800L TX
+SoftwareSerial mySerial(D2, D1);
+ 
+#define SIM800_RST_PIN D3  // D3 (GPIO0) connected to SIM800L RST pin
+ 
+String cmd = "";
+
+// Function declarations
+void updateSerial();
+void sendSMS();
+void makeCall();
+ 
+void setup()
+{
+  // Initialize reset pin
+  pinMode(SIM800_RST_PIN, OUTPUT);
+  digitalWrite(SIM800_RST_PIN, HIGH);
+  
+  mySerial.begin(9600);
+  Serial.begin(9600);
+  Serial.println("Initializing...");
+  
+  // Reset SIM800L module
+  Serial.println("Resetting SIM800L...");
+  digitalWrite(SIM800_RST_PIN, LOW);
+  delay(200);
+  digitalWrite(SIM800_RST_PIN, HIGH);
+  delay(8000);  // Wait longer for module to fully boot up and register
+  
+  Serial.println("Waiting for module to be ready...");
+  delay(2000);  // Additional wait for SMS Ready message
+  
+  Serial.println("Sending AT commands...");
+  mySerial.println("AT");                 // Sends an ATTENTION command, reply should be OK
+  delay(1000);
+  
+  mySerial.println("AT+CMGF=1");          // Configuration for sending SMS
+  delay(1000);
+  
+  mySerial.println("AT+CNMI=1,2,0,0,0");  // Configuration for receiving SMS
+  delay(1000);
+}
+ 
+void loop()
+{
+  updateSerial();
+}
+ 
+void updateSerial()
+{
+  delay(500);
+  while (Serial.available()) 
+  {
+ 
+    cmd+=(char)Serial.read();
+ 
+    if(cmd!=""){
+      cmd.trim();  // Remove added LF in transmit
+      if (cmd.equals("S")) {
+        sendSMS();
+      } else if (cmd.equals("C")) {
+        makeCall();
+      } else {
+        mySerial.print(cmd);
+        mySerial.println("");
+      }
+      cmd = ""; // Clear command buffer
+    }
+  }
+  
+  while(mySerial.available()) 
+  {
+    Serial.write(mySerial.read());//Forward what Software Serial received to Serial Port
+  }
+}
+ 
+void sendSMS(){
+  mySerial.println("AT+CMGF=1");
+  updateSerial();
+  delay(1000);
+  mySerial.println("AT+CMGS=\"+639541045141\"");
+  updateSerial();
+  delay(1000);
+  mySerial.print("Hi! Gwen!");
+  delay(500);
+  mySerial.write(26);
+  delay(2000);  // Wait for message to send
+  updateSerial();  // Show the response
+}
+
+void makeCall(){
+  Serial.println("Making call...");
+  mySerial.println("ATD+639541045141;");  // ATD command to dial, semicolon for voice call
+  updateSerial();
+  delay(10000);  // Wait 10 seconds
+  mySerial.println("ATH");  // Hang up
+  updateSerial();
+}
