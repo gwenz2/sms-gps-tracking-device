@@ -2,10 +2,8 @@
 
 A simple GPS tracker project using ESP8266, SIM800L, and NEO-6M.
 
-![Device PIC](pic.jpg)
 <img src="pic.jpg" alt="Device PIC" width="350" />
 
-![Wiring Screenshot](screenshot.png)
 <img src="screenshot.png" alt="Device PIC" width="350" />
 
 ## Features
